@@ -1,0 +1,43 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Home page";
+}
+<div class="col-auto">
+    <div class="row justify-content-center">
+        <h3>Sverige vädret!</h3>
+    </div>
+    <hr />
+    <div class="row justify-content-center">
+        <form method="get">
+            <select asp-for="City">
+                <option>Göteborg</option>
+                <option>Stockholm</option>
+                <option>Sundsvall</option>
+                <option>Kiruna</option>
+                <option>Malmö</option>
+            </select>
+            <button type="submit" class="btn btn-dark">Hämta</button>
+        </form>
+    </div>
+    <div class="row justify-content-center">
+        <form method="post">
+            <button>Uppdatera väderdata</button>
+        </form>
+        @if(Model.ErrorMessage is not null)
+            {
+                <p class="text-danger">@Model.ErrorMessage</p>
+            }
+    </div>
+
+    <div class="row justify-content-center">
+        @if (Model.City is not null)
+        {
+            <component type="typeof(Components.Cities)" render-mode="Static" param-city='$"{Model.City}"' />
+        }
+
+    </div>
+    <div class="row justify-content-center">
+        <component type="typeof(Components.AvgTemp)" render-mode="Static" />
+    </div>
+</div>

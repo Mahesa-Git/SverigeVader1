@@ -1,0 +1,40 @@
+﻿@using MongoDB.Bson;
+@using MongoDB.Driver;
+@inject Services.IDAL TempData
+
+<div class="col-auto">
+    <table>
+        <tr>
+            <th>Stad</th>
+            <th>Temp</th>
+            <th>Fuktighet</th>
+            <th>Vind</th>
+            <th>Beskrivning</th>
+            <th>Molnighet</th>
+            <th>Uv</th>
+            <th>vindriktning</th>
+            <th>Uppskattad temperatur</th>
+        </tr>
+
+        @foreach (var measurement in TempData.MeasurementCollection().Find(new BsonDocument()).ToList().Where(x => x.City == City))
+        {
+            <tr>
+                <td>@measurement.City</td>
+                <td>@measurement.Values.Temp</td>
+                <td>@measurement.Values.Relativehumidity</td>
+                <td>@measurement.Values.WindSpeed</td>
+                <td>@measurement.Values.Description</td>
+                <td>@measurement.Values.Clouds</td>
+                <td>@measurement.Values.Uv</td>
+                <td>@measurement.Values.WindDir</td>
+                <td>@measurement.Values.AppTemp</td>
+            </tr>
+        }
+
+    </table>
+</div>
+
+@code {
+    [Parameter]
+    public string City { get; set; }
+}

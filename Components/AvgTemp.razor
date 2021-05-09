@@ -1,0 +1,128 @@
+﻿@using MongoDB.Bson;
+@using MongoDB.Driver;
+@inject Services.IDAL TempData
+
+
+<div class="col-auto">
+    <table>
+        <tr>
+            <th>Stad</th>
+            <th>Medeltemp</th>
+            <th>Max</th>
+            <th>Min</th>
+            <th>Meteorologisk höst</th>
+            <th>Meteorologisk vinter</th>
+        </tr>
+
+        @foreach (var avg in AvgTempPerCity)
+        {
+    <tr>
+        <td>
+            @avg.Key
+        </td>
+        <td>
+            @avg.Average(x => x.Values.Temp)
+        </td>
+        <td>
+            @avg.Max(x => x.Values.Temp)
+        </td>
+        <td>
+            @avg.Min(x => x.Values.Temp)
+        </td>
+        <td>
+            @MeteorologicalFallAndWinter(true, avg.Key)
+        </td>
+        <td>
+            @MeteorologicalFallAndWinter(false, avg.Key)
+        </td>
+    </tr>
+        }
+
+    </table>
+
+</div>
+
+@code {
+        [Parameter]
+        public IEnumerable<IGrouping<string, Models.Measurement>> AvgTempPerCity { get; set; }
+
+    protected override void OnInitialized()
+    {
+        var q = TempData.MeasurementCollection().Find(new BsonDocument()).ToList();
+
+        AvgTempPerCity = q.GroupBy(x => x.City);
+    }
+    public string MeteorologicalFallAndWinter(bool fall, string city)
+    {
+        var q = TempData.MeasurementCollection().Find(new BsonDocument()).ToList();
+
+        int start, temp;
+        start = (fall == true) ? 08 : 01;
+        temp = (fall == true) ? 10 : 00;
+        string output = (fall == true) ? "höst" : "vinter";
+
+        var resultSet = q
+            .Where(x => x.City == city && x.Date.Month >= start && x.Date.Month <= 12 ||  x.Date.Month >= 01 && x.Date.Month < 03)
+            .GroupBy(x => x.Date.Date)
+            .Select(x => new { Date = x.Key, Avg = x.Average(x => x.Values.Temp) })
+            .OrderBy(x => x.Date);
+
+        int counter = 1;
+        int tmpListcounter = default;
+        var sortedEntries = new List<Models.Measurement>();
+
+        foreach (var entry in resultSet)
+        {
+            if (tmpListcounter < 5)
+            {
+                var tmp = new Models.Measurement();
+                tmp.Date = entry.Date;
+                tmp.Values = new Models.Values { Temp = entry.Avg};
+                sortedEntries.Add(tmp);
+                tmpListcounter++;
+            }
+            else
+            {
+                for (int i = 0; i < 5; i++)
+                {
+                    if (sortedEntries[i].Values.Temp <= temp && sortedEntries[counter].Values.Temp <= temp)
+                    {
+                        if (DateTime.Compare(sortedEntries[i].Date.AddDays(1), sortedEntries[counter].Date) == 0)
+                        {
+                            counter++;
+                            if (counter == 5)
+                            {
+                                return $"{sortedEntries[0].Date:yyyy/MM/dd} | {Math.Round(sortedEntries[0].Values.Temp, 1)} °C";
+                            }
+
+                            else
+                                continue;
+                        }
+                        else
+                        {
+                            var tmp = new Models.Measurement();
+                            tmp.Date = entry.Date;
+                            tmp.Values.Temp = entry.Avg;
+                            sortedEntries.RemoveAt(0);
+                            sortedEntries.Add(tmp);
+                            counter = 1;
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        var tmp = new Models.Measurement();
+                        tmp.Date = entry.Date;
+                        tmp.Values.Temp = entry.Avg;
+                        sortedEntries.RemoveAt(0);
+                        sortedEntries.Add(tmp);
+                        counter = 1;
+                        break;
+                    }
+                }
+
+            }
+        }
+        return $"Data som visar på start av meteorologisk {output} saknas.";
+    }
+}
